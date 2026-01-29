@@ -176,8 +176,8 @@ parse = parse_file
 def stream_parse(
     file_path: str,
     format: str,
-    progress_callback: "Callable | None" = None,
-) -> "Iterator[LogEntry]":
+    progress_callback=None,
+):
     """
     Stream-parse a log file for minimal memory usage.
 
@@ -196,7 +196,6 @@ def stream_parse(
             if entry.level >= LogLevel.ERROR:
                 print(entry.message)
     """
-    from typing import Iterator
     from ulp.application.parse_logs import ParseLogsStreamingUseCase
     from ulp.infrastructure.adapters import ParserRegistryAdapter
 

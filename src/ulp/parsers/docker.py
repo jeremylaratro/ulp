@@ -6,11 +6,10 @@ Handles Docker daemon logs and container logs (docker logs output).
 
 import json
 import re
-from datetime import datetime
 from typing import Any
 
 from ulp.core.base import BaseParser
-from ulp.core.models import LogEntry, LogLevel, CorrelationIds, LogSource
+from ulp.core.models import LogEntry, LogLevel
 
 __all__ = ["DockerJSONParser", "DockerDaemonParser"]
 

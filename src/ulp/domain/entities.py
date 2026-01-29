@@ -8,7 +8,7 @@ They are immutable value objects with no dependencies on infrastructure.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Iterator
+from typing import Any
 from uuid import UUID, uuid4
 
 __all__ = [
@@ -189,11 +189,11 @@ class CorrelationIds:
 
     def get_primary_id(self) -> tuple[str, str] | None:
         """Get the first non-None correlation ID as (field_name, value)."""
-        for field in ["request_id", "trace_id", "correlation_id", "transaction_id",
-                      "span_id", "session_id", "user_id"]:
-            value = getattr(self, field)
+        for field_name in ["request_id", "trace_id", "correlation_id", "transaction_id",
+                           "span_id", "session_id", "user_id"]:
+            value = getattr(self, field_name)
             if value:
-                return (field, value)
+                return (field_name, value)
         return None
 
 

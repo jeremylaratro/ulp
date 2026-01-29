@@ -11,10 +11,9 @@ Handles various Kubernetes log formats including:
 import json
 import re
 from datetime import datetime
-from typing import Any
 
 from ulp.core.base import BaseParser
-from ulp.core.models import LogEntry, LogLevel, CorrelationIds, LogSource
+from ulp.core.models import LogEntry, LogLevel, CorrelationIds
 
 __all__ = [
     "KubernetesContainerParser",
@@ -333,8 +332,7 @@ class KubernetesAuditParser(BaseParser):
         elif "requestReceivedTimestamp" in data:
             entry.timestamp = self._parse_timestamp(data["requestReceivedTimestamp"])
 
-        # Level based on audit level and response code
-        audit_level = data.get("level", "")
+        # Level based on response code
         response_code = data.get("responseStatus", {}).get("code", 200)
 
         if response_code >= 500:

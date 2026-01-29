@@ -121,7 +121,7 @@ class PythonLoggingParser(BaseParser):
 
         return matches / len(sample)
 
-    def _parse_python_timestamp(self, ts: str) -> 'datetime | None':
+    def _parse_python_timestamp(self, ts: str):
         """
         Parse Python logging timestamp.
 

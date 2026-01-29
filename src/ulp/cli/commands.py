@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 from typing import Iterator
 
-import click
 from rich.console import Console
 
 from ulp.core.models import LogEntry, LogLevel
@@ -247,7 +246,7 @@ def correlate_command(
 
     # Display results
     if not quiet:
-        console.print(f"\n[bold]Correlation Results[/bold]")
+        console.print("\n[bold]Correlation Results[/bold]")
         console.print(f"  Groups found: [cyan]{len(result.groups)}[/cyan]")
         console.print(f"  Orphan entries: [yellow]{len(result.orphan_entries)}[/yellow]")
 

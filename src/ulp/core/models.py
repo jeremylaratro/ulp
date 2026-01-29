@@ -8,7 +8,7 @@ All parsers convert their format-specific data into these common models.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Iterator
+from typing import Any
 from uuid import UUID, uuid4
 
 __all__ = [

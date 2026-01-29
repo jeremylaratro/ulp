@@ -5,7 +5,7 @@ Provides common normalization operations for log entries.
 """
 
 import re
-from datetime import datetime, timezone
+from datetime import timezone
 from typing import Any
 
 from ulp.domain.entities import LogEntry, LogLevel

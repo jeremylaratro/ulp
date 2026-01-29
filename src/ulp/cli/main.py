@@ -5,7 +5,6 @@ Uses the clean architecture with application layer use cases
 and infrastructure adapters.
 """
 
-import sys
 from pathlib import Path
 
 import click
@@ -269,7 +268,7 @@ def detect(
                 # Show all matches
                 with open(path, "r", encoding="utf-8", errors="replace") as f:
                     lines = [f.readline() for _ in range(50)]
-                    lines = [l for l in lines if l.strip()]
+                    lines = [line for line in lines if line.strip()]
 
                 all_formats = detector.detect_all(lines)
                 console.print(f"\n[bold]{path.name}[/bold]")

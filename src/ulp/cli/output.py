@@ -4,7 +4,6 @@ Output formatters for CLI.
 
 import csv
 import json
-import sys
 from io import StringIO
 
 from rich.console import Console
