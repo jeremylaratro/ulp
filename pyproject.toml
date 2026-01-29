@@ -72,10 +72,10 @@ all = [
 ulp = "ulp.cli.main:cli"
 
 [project.urls]
-Homepage = "https://github.com/ulp/ulp"
-Documentation = "https://github.com/ulp/ulp#readme"
-Issues = "https://github.com/ulp/ulp/issues"
-Changelog = "https://github.com/ulp/ulp/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/jeremylaratro/ulp"
+Documentation = "https://github.com/jeremylaratro/ulp#readme"
+Issues = "https://github.com/jeremylaratro/ulp/issues"
+Changelog = "https://github.com/jeremylaratro/ulp/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ulp"]
