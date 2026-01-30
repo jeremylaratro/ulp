@@ -7,6 +7,7 @@ Provides three strategies for correlating log entries:
 3. SessionCorrelation - Groups by user/session identifier
 """
 
+import warnings
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Iterator
@@ -14,6 +15,7 @@ from uuid import uuid4
 
 from ulp.domain.entities import LogEntry, CorrelationGroup
 from ulp.domain.services import CorrelationStrategy
+from ulp.core.security import MAX_ORPHAN_ENTRIES, MAX_SESSION_GROUPS
 
 __all__ = [
     "RequestIdCorrelation",
@@ -35,13 +37,18 @@ class RequestIdCorrelation(CorrelationStrategy):
             print(f"Request {group.correlation_key}: {len(group.entries)} logs")
     """
 
-    def __init__(self, id_fields: list[str] | None = None):
+    def __init__(
+        self,
+        id_fields: list[str] | None = None,
+        max_orphans: int = MAX_ORPHAN_ENTRIES,
+    ):
         """
         Initialize request ID correlation.
 
         Args:
             id_fields: List of field names to check for IDs.
                        Defaults to common ID fields.
+            max_orphans: Maximum orphan entries to track (H2 security limit)
         """
         self.id_fields = id_fields or [
             "request_id",
@@ -51,6 +58,8 @@ class RequestIdCorrelation(CorrelationStrategy):
             "transaction_id",
             "x_request_id",
         ]
+        self.max_orphans = max_orphans
+        self._orphan_overflow_warned = False
 
     @property
     def name(self) -> str:
@@ -93,7 +102,17 @@ class RequestIdCorrelation(CorrelationStrategy):
             if entry_id:
                 id_groups[entry_id].append(entry)
             else:
-                orphans.append(entry)
+                # H2: Bound orphan list to prevent memory exhaustion
+                if len(orphans) < self.max_orphans:
+                    orphans.append(entry)
+                elif not self._orphan_overflow_warned:
+                    warnings.warn(
+                        f"Orphan entry limit ({self.max_orphans}) exceeded. "
+                        "Additional entries without correlation IDs will be dropped.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    self._orphan_overflow_warned = True
 
         # Emit remaining groups
         yield from self._emit_groups(id_groups)
@@ -292,7 +311,8 @@ class SessionCorrelation(CorrelationStrategy):
     def __init__(
         self,
         session_fields: list[str] | None = None,
-        session_timeout_minutes: int = 30
+        session_timeout_minutes: int = 30,
+        max_sessions: int = MAX_SESSION_GROUPS,
     ):
         """
         Initialize session correlation.
@@ -300,6 +320,7 @@ class SessionCorrelation(CorrelationStrategy):
         Args:
             session_fields: Fields that identify a session
             session_timeout_minutes: Max gap before new session
+            max_sessions: Maximum session groups to track (H3 security limit)
         """
         self.session_fields = session_fields or [
             "session_id",
@@ -308,6 +329,8 @@ class SessionCorrelation(CorrelationStrategy):
             "user_agent",
         ]
         self.session_timeout = timedelta(minutes=session_timeout_minutes)
+        self.max_sessions = max_sessions
+        self._session_overflow_warned = False
 
     @property
     def name(self) -> str:
@@ -339,6 +362,18 @@ class SessionCorrelation(CorrelationStrategy):
         for entry in entries:
             session_key = self._extract_session_key(entry)
             if not session_key:
+                continue
+
+            # H3: Limit session group count to prevent memory exhaustion
+            if session_key not in sessions and len(sessions) >= self.max_sessions:
+                if not self._session_overflow_warned:
+                    warnings.warn(
+                        f"Session group limit ({self.max_sessions}) exceeded. "
+                        "Additional sessions will be dropped.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    self._session_overflow_warned = True
                 continue
 
             session_entries, last_ts = sessions[session_key]

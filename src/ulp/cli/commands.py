@@ -5,7 +5,6 @@ This module provides the CLI command implementations that wire up
 the infrastructure adapters to the application use cases.
 """
 
-import re
 import sys
 from pathlib import Path
 from typing import Iterator
@@ -13,6 +12,7 @@ from typing import Iterator
 from rich.console import Console
 
 from ulp.core.models import LogEntry, LogLevel
+from ulp.core.security import validate_regex_pattern, SecurityValidationError
 from ulp.application.parse_logs import ParseLogsUseCase
 from ulp.application.correlate_logs import CorrelateLogsUseCase
 from ulp.infrastructure import (
@@ -150,11 +150,12 @@ def parse_command(
         all_entries = [e for e in all_entries if e.level >= min_level]
 
     if grep:
+        # M2: Validate regex pattern for security (length, syntax, ReDoS)
         try:
-            pattern = re.compile(grep, re.IGNORECASE)
+            pattern = validate_regex_pattern(grep)
             all_entries = [e for e in all_entries if pattern.search(e.message)]
-        except re.error as e:
-            error_console.print(f"[red]Invalid regex pattern:[/red] {e}")
+        except SecurityValidationError as e:
+            error_console.print(f"[red]Regex validation failed:[/red] {e.message}")
             return 1
 
     if limit:

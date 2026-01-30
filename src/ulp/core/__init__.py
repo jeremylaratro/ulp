@@ -19,6 +19,19 @@ from ulp.core.exceptions import (
     FormatDetectionError,
     ConfigurationError,
 )
+from ulp.core.security import (
+    MAX_LINE_LENGTH,
+    MAX_ORPHAN_ENTRIES,
+    MAX_SESSION_GROUPS,
+    MAX_JSON_DEPTH,
+    LineTooLongError,
+    SecurityValidationError,
+    validate_line_length,
+    validate_json_depth,
+    validate_regex_pattern,
+    sanitize_csv_cell,
+    check_symlink,
+)
 
 __all__ = [
     "LogEntry",
@@ -34,4 +47,16 @@ __all__ = [
     "ParseError",
     "FormatDetectionError",
     "ConfigurationError",
+    # Security
+    "MAX_LINE_LENGTH",
+    "MAX_ORPHAN_ENTRIES",
+    "MAX_SESSION_GROUPS",
+    "MAX_JSON_DEPTH",
+    "LineTooLongError",
+    "SecurityValidationError",
+    "validate_line_length",
+    "validate_json_depth",
+    "validate_regex_pattern",
+    "sanitize_csv_cell",
+    "check_symlink",
 ]

@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ulp.core.models import LogEntry, LogLevel
+from ulp.core.security import sanitize_csv_cell
 
 __all__ = ["render_entries", "render_table", "render_json", "render_csv", "render_compact"]
 
@@ -117,13 +118,14 @@ def render_csv(entries: list[LogEntry]) -> None:
     writer.writeheader()
 
     for entry in entries:
+        # M4: Sanitize all values to prevent CSV formula injection
         row = {
             "timestamp": entry.timestamp.isoformat() if entry.timestamp else "",
             "level": entry.level.name,
-            "message": entry.message,
-            "source_file": entry.source.file_path or "",
+            "message": sanitize_csv_cell(entry.message),
+            "source_file": sanitize_csv_cell(entry.source.file_path or ""),
             "line_number": entry.source.line_number or "",
-            "service": entry.source.service or "",
+            "service": sanitize_csv_cell(entry.source.service or ""),
             "format": entry.format_detected,
         }
         writer.writerow(row)

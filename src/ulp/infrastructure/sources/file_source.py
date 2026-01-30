@@ -7,6 +7,12 @@ Provides memory-efficient streaming for files of any size.
 from pathlib import Path
 from typing import Callable, Iterator
 
+from ulp.core.security import (
+    MAX_LINE_LENGTH,
+    validate_line_length,
+    check_symlink,
+)
+
 __all__ = ["FileStreamSource", "LargeFileStreamSource"]
 
 
@@ -27,7 +33,8 @@ class FileStreamSource:
         self,
         path: str | Path,
         encoding: str = "utf-8",
-        errors: str = "replace"
+        errors: str = "replace",
+        warn_symlinks: bool = True,
     ):
         """
         Initialize file stream source.
@@ -36,6 +43,7 @@ class FileStreamSource:
             path: Path to log file
             encoding: File encoding (default: utf-8)
             errors: How to handle encoding errors (default: replace)
+            warn_symlinks: Emit warning when following symlinks (default: True)
         """
         self.path = Path(path)
         self.encoding = encoding
@@ -44,12 +52,20 @@ class FileStreamSource:
         if not self.path.exists():
             raise FileNotFoundError(f"File not found: {self.path}")
 
+        # M6: Check for symlinks and warn
+        is_symlink, resolved = check_symlink(self.path, warn=warn_symlinks)
+        if is_symlink:
+            self.path = resolved
+
     def read_lines(self) -> Iterator[str]:
         """
         Read lines from file, yielding one at a time.
 
         Yields:
             Log lines (without trailing newline)
+
+        Raises:
+            LineTooLongError: If a line exceeds MAX_LINE_LENGTH
         """
         with open(
             self.path,
@@ -58,8 +74,10 @@ class FileStreamSource:
             errors=self.errors
         ) as f:
             for line in f:
-                # Yield line without trailing newline
-                yield line.rstrip("\n\r")
+                stripped = line.rstrip("\n\r")
+                # H1: Validate line length
+                validate_line_length(stripped)
+                yield stripped
 
     def metadata(self) -> dict[str, str]:
         """Get source metadata."""
@@ -94,7 +112,8 @@ class LargeFileStreamSource:
         path: str | Path,
         encoding: str = "utf-8",
         errors: str = "replace",
-        chunk_size: int = 8192
+        chunk_size: int = 8192,
+        warn_symlinks: bool = True,
     ):
         """
         Initialize large file stream source.
@@ -104,6 +123,7 @@ class LargeFileStreamSource:
             encoding: File encoding (default: utf-8)
             errors: How to handle encoding errors (default: replace)
             chunk_size: Read chunk size for mmap mode
+            warn_symlinks: Emit warning when following symlinks (default: True)
         """
         self.path = Path(path)
         self.encoding = encoding
@@ -112,6 +132,11 @@ class LargeFileStreamSource:
 
         if not self.path.exists():
             raise FileNotFoundError(f"File not found: {self.path}")
+
+        # M6: Check for symlinks and warn
+        is_symlink, resolved = check_symlink(self.path, warn=warn_symlinks)
+        if is_symlink:
+            self.path = resolved
 
         self._file_size = self.path.stat().st_size
         self._use_mmap = self._file_size > self.MMAP_THRESHOLD
@@ -140,7 +165,10 @@ class LargeFileStreamSource:
             errors=self.errors
         ) as f:
             for line in f:
-                yield line.rstrip("\n\r")
+                stripped = line.rstrip("\n\r")
+                # H1: Validate line length
+                validate_line_length(stripped)
+                yield stripped
 
     def _read_lines_mmap(self) -> Iterator[str]:
         """Read using memory mapping for large files."""
@@ -163,7 +191,10 @@ class LargeFileStreamSource:
                             # Found line end
                             try:
                                 line = buffer.decode(self.encoding, errors=self.errors)
-                                yield line.rstrip("\r")
+                                stripped = line.rstrip("\r")
+                                # H1: Validate line length
+                                validate_line_length(stripped)
+                                yield stripped
                             except UnicodeDecodeError:
                                 # Skip malformed lines
                                 pass
@@ -177,7 +208,10 @@ class LargeFileStreamSource:
                 if buffer:
                     try:
                         line = buffer.decode(self.encoding, errors=self.errors)
-                        yield line.rstrip("\r")
+                        stripped = line.rstrip("\r")
+                        # H1: Validate line length
+                        validate_line_length(stripped)
+                        yield stripped
                     except UnicodeDecodeError:
                         pass
 
@@ -216,7 +250,8 @@ class ChunkedFileStreamSource:
         progress_callback: Callable | None = None,
         encoding: str = "utf-8",
         errors: str = "replace",
-        callback_interval: int = 10000
+        callback_interval: int = 10000,
+        warn_symlinks: bool = True,
     ):
         """
         Initialize chunked file stream source.
@@ -227,6 +262,7 @@ class ChunkedFileStreamSource:
             encoding: File encoding
             errors: How to handle encoding errors
             callback_interval: Call progress callback every N lines
+            warn_symlinks: Emit warning when following symlinks (default: True)
         """
         self.path = Path(path)
         self.progress_callback = progress_callback
@@ -236,6 +272,11 @@ class ChunkedFileStreamSource:
 
         if not self.path.exists():
             raise FileNotFoundError(f"File not found: {self.path}")
+
+        # M6: Check for symlinks and warn
+        is_symlink, resolved = check_symlink(self.path, warn=warn_symlinks)
+        if is_symlink:
+            self.path = resolved
 
         self._file_size = self.path.stat().st_size
 
@@ -254,7 +295,10 @@ class ChunkedFileStreamSource:
                 bytes_read += len(line.encode(self.encoding, errors="replace"))
                 lines_read += 1
 
-                yield line.rstrip("\n\r")
+                stripped = line.rstrip("\n\r")
+                # H1: Validate line length
+                validate_line_length(stripped)
+                yield stripped
 
                 # Report progress
                 if (
